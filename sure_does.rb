@@ -1,6 +1,7 @@
 require 'sinatra/base'
 require 'net/http'
 require 'json'
+require 'csv'
 
 class SureDoes < Sinatra::Base
   configure do
@@ -13,7 +14,27 @@ class SureDoes < Sinatra::Base
       req = Net::HTTP::Get.new(url)
       req.add_field('User-Agent', 'Sure Does')
       res = Net::HTTP.start(url.host, url.port) {|http| http.request(req) }
-      JSON.parse(res.body)
+      JSON.parse(res.body)["data"]
+    end
+
+    def process_post(item)
+      post = item["data"]
+
+      [ post["title"],
+        post["selftext"],
+        post["author"],
+        post["url"],
+        Time.at(post['created'].to_i)]
+    end
+
+    def to_csv(data)
+      CSV.generate do |csv|
+        csv << ["Title", "Text", "Author", "Permlink", "Created_At"]
+
+        data.each do |item|
+          csv << process_post(item)
+        end
+      end
     end
   end
 
@@ -22,7 +43,13 @@ class SureDoes < Sinatra::Base
   end
 
   get '/export-new-post' do
-    "#{fetch_posts}"
+    posts = fetch_posts["children"]
+    after = fetch_posts["after"]
+
+    content_type 'application/csv'
+    attachment   "data_#{after}.csv"
+
+    to_csv(posts)
   end
 
   run! if app_file == $0
