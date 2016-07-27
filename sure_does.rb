@@ -38,8 +38,12 @@ class SureDoes < Sinatra::Base
     end
   end
 
+  get '/' do
+    slim :index
+  end
+
   get '/ping' do
-    "I am still up at #{Time.now}"
+    "I am still up at #{Time.now} PONG"
   end
 
   get '/export-new-post' do
