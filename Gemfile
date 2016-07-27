@@ -11,6 +11,7 @@ gem 'slim'
 
 group :development do
   gem 'foreman'
+  gem 'rerun'
 	gem 'pry'
 	gem 'tux'
 end
