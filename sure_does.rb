@@ -4,13 +4,17 @@ require 'json'
 require 'csv'
 require 'nokogiri'
 require 'pry'
+require 'mechanize'
 
 class SureDoes < Sinatra::Base
+  configure do
+    set :user_agent, 'sure does'
+    set :base_uri, 'https://www.reddit.com/r/sleepparalysis/new'
+  end
+
   helpers do
     def fetch_posts
-      base_uri = 'https://www.reddit.com/r/sleepparalysis/new'
-      user_agent = 'sure does'
-      doc = Nokogiri::HTML(open(base_uri, 'User-Agent' => user_agent))
+      doc = Nokogiri::HTML(open(settings.base_uri, 'User-Agent' => settings.user_agent))
       docs = doc.css('.thing')
       docs.map do |post|
         {
@@ -26,13 +30,14 @@ class SureDoes < Sinatra::Base
     def process_post(post)
       [ post[:title],
         post[:author],
+        text,
         post[:url],
         Time.at(post[:created].to_i)]
     end
 
     def to_csv(data)
       CSV.generate do |csv|
-        csv << ["Title", "Author", "Permalink", "Created_At"]
+        csv << ["Title", "Author", "SelfText", "Permalink", "Created_At"]
 
         data.each do |item|
           csv << process_post(item)

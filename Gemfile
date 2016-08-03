@@ -7,6 +7,7 @@ gem 'thin'
 gem 'activerecord'
 gem 'pg'
 gem 'nokogiri'
+gem 'mechanize'
 gem 'slim'
 
 group :development do
