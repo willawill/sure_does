@@ -2,34 +2,37 @@ require 'sinatra/base'
 require 'net/http'
 require 'json'
 require 'csv'
+require 'nokogiri'
+require 'pry'
 
 class SureDoes < Sinatra::Base
-  configure do
-    set :base_uri, 'http://www.reddit.com/r/sleepparalysis'
-  end
-
   helpers do
     def fetch_posts
-      url = URI.parse(settings.base_uri + '/new.json')
-      req = Net::HTTP::Get.new(url)
-      req.add_field('User-Agent', 'Sure Does')
-      res = Net::HTTP.start(url.host, url.port) {|http| http.request(req) }
-      JSON.parse(res.body)["data"]
+      base_uri = 'https://www.reddit.com/r/sleepparalysis/new'
+      user_agent = 'sure does'
+      doc = Nokogiri::HTML(open(base_uri, 'User-Agent' => user_agent))
+      docs = doc.css('.thing')
+      docs.map do |post|
+        {
+          :title => post.css(".title").children().last.text,
+          :author => post.attributes['data-author'].value,
+          :url => "https://www.reddit.com" + post.attributes['data-url'].value,
+          :created => post.attributes['data-timestamp'].value.to_s[0...-3]
+        }
+      end
+
     end
 
-    def process_post(item)
-      post = item["data"]
-
-      [ post["title"],
-        post["selftext"],
-        post["author"],
-        post["url"],
-        Time.at(post['created'].to_i)]
+    def process_post(post)
+      [ post[:title],
+        post[:author],
+        post[:url],
+        Time.at(post[:created].to_i)]
     end
 
     def to_csv(data)
       CSV.generate do |csv|
-        csv << ["Title", "Text", "Author", "Permlink", "Created_At"]
+        csv << ["Title", "Author", "Permalink", "Created_At"]
 
         data.each do |item|
           csv << process_post(item)
@@ -47,11 +50,9 @@ class SureDoes < Sinatra::Base
   end
 
   get '/export-new-post' do
-    posts = fetch_posts["children"]
-    after = fetch_posts["after"]
-
+    posts = fetch_posts
     content_type 'application/csv'
-    attachment   "data_#{after}.csv"
+    attachment   "data.csv"
 
     to_csv(posts)
   end
