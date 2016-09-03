@@ -27,10 +27,20 @@ class SureDoes < Sinatra::Base
 
     end
 
+    def mechanize_agent
+      @agent ||= Mechanize.new { |agent| agent.user_agent = 'sure does' }
+    end
+
+    def post_text(url)
+      page = mechanize_agent.get(url)
+      page.search('.usertext-body p')[4..-1].text
+    end
+
     def process_post(post)
+
       [ post[:title],
         post[:author],
-        text,
+        post_text(post[:url]),
         post[:url],
         Time.at(post[:created].to_i)]
     end
